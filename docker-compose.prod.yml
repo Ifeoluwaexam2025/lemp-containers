@@ -15,18 +15,18 @@ services:
   backend:
       image: ${DOCKERHUB_USERNAME}/lemp-backend:latest
       environment:
-        DB_HOST: db
+        DB_HOST:  ${DB_HOST}
         DB_USER: ${DB_USER}
         DB_PASSWORD: ${DB_PASSWORD}
         DB_NAME: ${DB_NAME}
       depends_on:
         db:
-        condition: service_healthy
+         condition: service_healthy
   frontend:
     image: ${DOCKERHUB_USERNAME}/lemp-frontend:latest
     depends_on:
-    - backend
+     - backend
     ports:
-    - "80:80" # expose only frontend to the host
+     - "80:80" # expose only frontend to the host
   volumes:
    db_data:
