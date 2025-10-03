@@ -1,0 +1,120 @@
+name: CI/CD for LEMP Containers
+
+on:
+  push:
+    branches: [ main ]
+    tags: [ 'v*' ] 
+    
+jobs:
+  # Job 1: Build and push Docker images
+  build-and-push:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Build & push backend
+        uses: docker/build-push-action@v5
+        with:
+          context: ./backend
+          file: ./backend/Dockerfile
+          push: true
+          tags: 
+            ${{ secrets.DOCKERHUB_USERNAME }}/lemp-backend:latest
+            ${{ secrets.DOCKERHUB_USERNAME }}/lemp-backend:${{ github.sha }}
+          cache-from: type=registry,ref=${{ secrets.DOCKERHUB_USERNAME }}/lemp-backend:latest
+          cache-to: type=inline
+
+      - name: Build & push frontend
+        uses: docker/build-push-action@v5
+        with:
+          context: ./frontend
+          file: ./frontend/Dockerfile
+          push: true
+          tags: 
+            ${{ secrets.DOCKERHUB_USERNAME }}/lemp-frontend:latest
+            ${{ secrets.DOCKERHUB_USERNAME }}/lemp-frontend:${{ github.sha }}
+
+---
+
+  # Job 2: Prepare server, copy files, and deploy
+  deploy:
+    runs-on: ubuntu-latest
+    needs: build-and-push # Waits for Job 1 to succeed
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Create local .env file (for deployment context)
+        # Create a deployment-specific .env file on the runner.
+        run: |
+          echo "MYSQL_ROOT_PASSWORD=${{ secrets.MYSQL_ROOT_PASSWORD }}" >> .env
+          echo "DB_HOST=${{ secrets.DB_HOST }}" >> .env
+          echo "DB_USER=${{ secrets.DB_USER }}" >> .env
+          echo "DB_PASSWORD=${{ secrets.DB_PASSWORD }}" >> .env
+          echo "DB_NAME=${{ secrets.DB_NAME }}" >> .env
+
+      - name: Ensure target directory exists on VM
+        # Creates the parent deployment directory and the necessary db/init folder
+        uses: appleboy/ssh-action@v1.0.3 
+        with:
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USER }}
+          key: ${{ secrets.SSH_KEY }}
+          port: 22
+          script: |
+            mkdir -p /opt/lemp/db/init/
+
+      - name: Copy files (compose.yml, .env, db/init) to VM
+        # Use appleboy/scp-action to securely transfer files
+        uses: appleboy/scp-action@v0.1.7 
+        with:
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USER }}
+          key: ${{ secrets.SSH_KEY }}
+          port: 22
+          # Comma-separated list of files/directories to copy
+          source: "docker-compose.yml,.env,db/init" 
+          # Target directory on the remote server
+          target: "/opt/lemp" 
+
+      - name: Set permissions for /opt/lemp/db/init/
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USER }}
+          key: ${{ secrets.SSH_KEY }}
+          port: 22
+          script: |
+            # Give the SSH_USER permission to write to the init directory
+            sudo chown -R $(whoami) /opt/lemp/db/init/
+            sudo chmod -R u+w /opt/lemp/db/init/
+
+      - name: Deploy Docker Compose stack
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USER }}
+          key: ${{ secrets.SSH_KEY }}
+          port: 22
+          script: |
+            # Change to the deployment directory on the remote server
+            cd /opt/lemp
+            # Run the containers using the copied docker-compose.yml and .env files
+            # -d: detached mode | --force-recreate: ensures new images are used
+            # --remove-orphans: cleans up containers not defined in the compose file
+            docker compose -f docker-compose.yml up -d --force-recreate --remove-orphans
