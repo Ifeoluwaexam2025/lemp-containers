@@ -37,7 +37,7 @@ jobs:
             ${{ secrets.DOCKERHUB_USERNAME }}/lemp-backend:${{ github.sha }}
           cache-from: type=registry,ref=${{ secrets.DOCKERHUB_USERNAME }}/lemp-backend:latest
           cache-to: type=inline
-
+# ... (inside the build-and-push job)
       - name: Build & push frontend
         uses: docker/build-push-action@v5
         with:
@@ -47,7 +47,9 @@ jobs:
           tags: 
             ${{ secrets.DOCKERHUB_USERNAME }}/lemp-frontend:latest
             ${{ secrets.DOCKERHUB_USERNAME }}/lemp-frontend:${{ github.sha }}
-
+          # 🚨 FIX: Add caching for the frontend image
+          cache-from: type=registry,ref=${{ secrets.DOCKERHUB_USERNAME }}/lemp-frontend:latest
+          cache-to: type=inline
 ---
 
   # Job 2: Prepare server, copy files, and deploy
