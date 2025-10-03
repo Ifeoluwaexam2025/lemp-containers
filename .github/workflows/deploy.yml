@@ -117,3 +117,59 @@ jobs:
             docker compose pull
             docker compose up -d
             docker compose ps
+
+            # Job 2: Prepare server, copy files, and deploy
+  deploy-application:
+    runs-on: ubuntu-latest
+    needs: build-and-push
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+      
+      # ... (Create local .env file step)
+
+      - name: Ensure target directory exists on VM
+        # 🚨 FIX: Add DEBUG: true to see the raw SSH error message
+        uses: appleboy/ssh-action@v1.0.3 
+        with:
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USER }}
+          key: ${{ secrets.SSH_KEY }}
+          port: 22
+          script: |
+            mkdir -p /opt/lemp/db/init/
+          debug: true  # <--- ADD THIS LINE
+
+      # ... (Copy essential configuration files step)
+
+      # ... (Copy init.sql to VM step)
+      # 🚨 FIX: Add DEBUG: true to all subsequent SSH/SCP steps too
+      - name: Set permissions for /opt/lemp/db/init/
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USER }}
+          key: ${{ secrets.SSH_KEY }}
+          port: 22
+          script: |
+            sudo chown -R ${{ secrets.SSH_USER }} /opt/lemp/db/init/
+            sudo chmod -R u+w /opt/lemp/db/init/
+          debug: true # <--- ADD THIS LINE
+
+      # ... (Deploy Docker Compose stack step)
+      - name: Deploy Docker Compose stack
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USER }}
+          key: ${{ secrets.SSH_KEY }}
+          port: 22
+          script: |
+            set -e
+            cd /opt/lemp
+            docker compose down 
+            docker compose pull
+            docker compose up -d --force-recreate
+            docker compose ps
+          debug: true # <--- ADD THIS LINE
