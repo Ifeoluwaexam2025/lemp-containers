@@ -1,17 +1,151 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
- <meta charset="utf-8" />
- <title>Containerized LEMP Example</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ifeoluwa's Personal App</title>
+    <!-- Load Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        /* Custom styles for aesthetic font and smooth transitions */
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f0f4f8; /* Light background */
+            transition: background-color 0.3s;
+        }
+        .card {
+            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 0 10px -5px rgba(0, 0, 0, 0.04);
+            transition: transform 0.3s ease-in-out;
+        }
+        .card:hover {
+            transform: translateY(-2px);
+        }
+    </style>
 </head>
-<body>
- <h1>Frontend (Nginx)</h1>
- <div id="msg">Loading...</div>
- <script>
- fetch('/api')
- .then(r => r.json())
- .then(d => { document.getElementById('msg').innerText = d.message; })
- .catch(e => { document.getElementById('msg').innerText = 'API error: ' + e; });
- </script>
+<body class="min-h-screen flex flex-col">
+
+    <!-- Header Navigation -->
+    <header class="bg-white sticky top-0 z-10 shadow-md">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex justify-between items-center">
+            <h1 class="text-3xl font-bold text-indigo-700">Ifeoluwa's Personal App</h1>
+            <nav>
+                <button onclick="showPage('home')" class="nav-link text-gray-600 hover:text-indigo-700 font-medium px-3 py-2 rounded-lg transition duration-150">Home</button>
+                <button onclick="showPage('about')" class="nav-link text-gray-600 hover:text-indigo-700 font-medium px-3 py-2 rounded-lg transition duration-150">About Me</button>
+                <button onclick="showPage('projects')" class="nav-link text-gray-600 hover:text-indigo-700 font-medium px-3 py-2 rounded-lg transition duration-150">Projects</button>
+            </nav>
+        </div>
+    </header>
+
+    <!-- Main Content Area -->
+    <main class="flex-grow p-4 sm:p-8 lg:p-12">
+        <div class="max-w-4xl mx-auto">
+            <div id="content" class="bg-white p-6 sm:p-10 rounded-xl card transition duration-300">
+                <!-- Content injected here by JavaScript -->
+            </div>
+        </div>
+    </main>
+
+    <!-- Footer -->
+    <footer class="bg-gray-800 text-white p-4 mt-auto">
+        <div class="max-w-7xl mx-auto text-center text-sm">
+            &copy; 2025 Ifeoluwa's App. Built with HTML, CSS, and JS.
+        </div>
+    </footer>
+
+    <script>
+        // Data structure for holding page content
+        const pages = {
+            home: {
+                title: "Welcome to My Personal Space!",
+                body: `
+                    <p class="text-gray-700 mb-6">This simple application demonstrates dynamic page loading and a core button function, all within a single file. Use the navigation links above to explore different sections!</p>
+                    <button id="mainActionButton" onclick="handleButtonClick()" class="px-6 py-3 bg-indigo-600 text-white font-semibold rounded-xl hover:bg-indigo-700 transition duration-300 transform hover:scale-105 shadow-lg">
+                        Click Me to See a Simple Function!
+                    </button>
+                    <div id="messageBox" class="mt-4 p-3 bg-yellow-100 text-yellow-800 border border-yellow-300 rounded-lg hidden">
+                        A custom function message will appear here.
+                    </div>
+                `
+            },
+            about: {
+                title: "About Me",
+                body: `
+                    <p class="text-gray-700 mb-4">Hello! I am Ifeoluwa, and this is my little demonstration app.</p>
+                    <ul class="list-disc list-inside space-y-2 text-gray-600">
+                        <li>I enjoy building things and learning new technologies.</li>
+                        <li>This app is a small example of using vanilla JavaScript to create a multi-page feel.</li>
+                        <li>It is styled using the utility classes of Tailwind CSS.</li>
+                    </ul>
+                    <p class="mt-4 text-sm text-indigo-500">I hope you find the structure clear and easy to follow!</p>
+                `
+            },
+            projects: {
+                title: "My Projects",
+                body: `
+                    <p class="text-gray-700 mb-4">Here are a few projects I am currently working on:</p>
+                    <div class="space-y-4">
+                        <div class="p-4 bg-gray-50 rounded-lg border border-gray-200">
+                            <h3 class="text-lg font-semibold text-gray-800">Project Alpha: CI/CD Pipeline</h3>
+                            <p class="text-sm text-gray-500">Focusing on automating deployment workflows using GitHub Actions and Docker.</p>
+                        </div>
+                        <div class="p-4 bg-gray-50 rounded-lg border border-gray-200">
+                            <h3 class="text-lg font-semibold text-gray-800">Project Beta: Data Visualization</h3>
+                            <p class="text-sm text-gray-500">Exploring D3.js to create interactive and beautiful data representations.</p>
+                        </div>
+                    </div>
+                `
+            }
+        };
+
+        // Function to handle page navigation
+        function showPage(pageName) {
+            const pageData = pages[pageName];
+            const contentDiv = document.getElementById('content');
+
+            if (!pageData) {
+                contentDiv.innerHTML = '<h2 class="text-3xl font-semibold text-red-500 mb-4">404 Page Not Found</h2><p class="text-gray-700">The requested page does not exist.</p>';
+                return;
+            }
+
+            // Update the main content area with the selected page's content
+            contentDiv.innerHTML = `
+                <h2 class="text-3xl font-bold text-gray-800 mb-6 border-b pb-2">${pageData.title}</h2>
+                ${pageData.body}
+            `;
+            
+            // Scroll to the top of the content area for a better UX, especially on mobile
+            contentDiv.scrollIntoView({ behavior: 'smooth' });
+        }
+
+        // Function for the simple button interaction
+        let clickCount = 0;
+        function handleButtonClick() {
+            clickCount++;
+            const messageBox = document.getElementById('messageBox');
+            
+            if (messageBox) {
+                messageBox.classList.remove('hidden');
+                
+                // Simple logic based on the number of clicks
+                let message;
+                if (clickCount === 1) {
+                    message = "Function executed successfully! This is your first click.";
+                } else if (clickCount <= 5) {
+                    // FIX: Removed unnecessary backslash before the backtick
+                    message = `You've clicked me ${clickCount} times! Keep going!`;
+                } else {
+                    message = "Wow! That function is getting quite the workout!";
+                }
+
+                messageBox.innerHTML = message;
+            }
+        }
+        
+        // Initialize the app by showing the home page on load
+        window.onload = () => {
+            showPage('home');
+        };
+    </script>
 </body>
 </html>
+
