@@ -18,7 +18,7 @@ def index():
  user=DB_USER,
  password=DB_PASSWORD,
  database=DB_NAME,
- )
+ ) 
  cur = conn.cursor()
  cur.execute("SELECT 'Hello from MySQL via Flask!'")
  row = cur.fetchone()
