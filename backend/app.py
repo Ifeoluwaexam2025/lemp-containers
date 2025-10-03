@@ -1,5 +1,6 @@
 from flask import Flask, jsonify
 import os
+
 import mysql.connector
 app = Flask(__name__)
 DB_HOST = os.getenv('DB_HOST', 'db')
